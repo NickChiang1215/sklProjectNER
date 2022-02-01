@@ -15,7 +15,7 @@ from tools.common import seed_everything, json_to_text
 from tools.common import init_logger, logger
 
 from transformers import WEIGHTS_NAME, BertConfig, get_linear_schedule_with_warmup, AdamW, BertTokenizer
-from models.bert_for_ner import BertCrfForNer
+from models.bert_for_ner import BertCrfSoftmaxForNer
 from processors.utils_ner import get_entities
 from processors.ner_seq import convert_examples_to_features
 from processors.ner_seq import ner_processors as processors
@@ -25,7 +25,7 @@ from tools.finetuning_argparse import get_argparse
 
 MODEL_CLASSES = {
     ## bert ernie bert_wwm bert_wwwm_ext
-    'bert': (BertConfig, BertCrfForNer, BertTokenizer),
+    'bert': (BertConfig, BertCrfSoftmaxForNer, BertTokenizer),
 }
 
 
@@ -128,6 +128,7 @@ def train(args, train_dataset, model, tokenizer):
                 continue
             model.train()
             batch = tuple(t.to(args.device) for t in batch)
+            # all_input_ids, all_input_mask, all_segment_ids, all_lens, all_label_ids
             inputs = {"input_ids": batch[0], "attention_mask": batch[1], "labels": batch[3]}
             if args.model_type != "distilbert":
                 # XLM and RoBERTa don"t use segment_ids
@@ -424,7 +425,7 @@ def main():
         torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
     args.model_type = args.model_type.lower()
     config_class, model_class, tokenizer_class = MODEL_CLASSES[args.model_type]
-    config = config_class.from_pretrained(args.model_name_or_path, num_labels=num_labels, )
+    config = config_class.from_pretrained(args.model_name_or_path, num_labels=num_labels)
     tokenizer = tokenizer_class.from_pretrained(args.model_name_or_path,
                                                 do_lower_case=args.do_lower_case, )
     model = model_class.from_pretrained(args.model_name_or_path, config=config)

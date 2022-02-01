@@ -1,14 +1,19 @@
 """ Named entity recognition fine-tuning: utilities to work with CLUENER task. """
-import torch
-import logging
-import os
 import copy
 import json
+import logging
+import os
+
+import torch
+
 from .utils_ner import DataProcessor
+
 logger = logging.getLogger(__name__)
+
 
 class InputExample(object):
     """A single training/test example for token classification."""
+
     def __init__(self, guid, text_a, labels):
         """Constructs a InputExample.
         Args:
@@ -23,17 +28,21 @@ class InputExample(object):
 
     def __repr__(self):
         return str(self.to_json_string())
+
     def to_dict(self):
         """Serializes this instance to a Python dictionary."""
         output = copy.deepcopy(self.__dict__)
         return output
+
     def to_json_string(self):
         """Serializes this instance to a JSON string."""
         return json.dumps(self.to_dict(), indent=2, sort_keys=True) + "\n"
 
+
 class InputFeatures(object):
     """A single set of features of data."""
-    def __init__(self, input_ids, input_mask, input_len,segment_ids, label_ids):
+
+    def __init__(self, input_ids, input_mask, input_len, segment_ids, label_ids):
         self.input_ids = input_ids
         self.input_mask = input_mask
         self.segment_ids = segment_ids
@@ -52,6 +61,7 @@ class InputFeatures(object):
         """Serializes this instance to a JSON string."""
         return json.dumps(self.to_dict(), indent=2, sort_keys=True) + "\n"
 
+
 def collate_fn(batch):
     """
     batch should be a list of (sequence, target, length) tuples...
@@ -62,13 +72,14 @@ def collate_fn(batch):
     all_input_ids = all_input_ids[:, :max_len]
     all_attention_mask = all_attention_mask[:, :max_len]
     all_token_type_ids = all_token_type_ids[:, :max_len]
-    all_labels = all_labels[:,:max_len]
-    return all_input_ids, all_attention_mask, all_token_type_ids, all_labels,all_lens
+    all_labels = all_labels[:, :max_len]
+    return all_input_ids, all_attention_mask, all_token_type_ids, all_labels, all_lens
 
-def convert_examples_to_features(examples,label_list,max_seq_length,tokenizer,
-                                 cls_token_at_end=False,cls_token="[CLS]",cls_token_segment_id=1,
-                                 sep_token="[SEP]",pad_on_left=False,pad_token=0,pad_token_segment_id=0,
-                                 sequence_a_segment_id=0,mask_padding_with_zero=True,):
+
+def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer,
+                                 cls_token_at_end=False, cls_token="[CLS]", cls_token_segment_id=1,
+                                 sep_token="[SEP]", pad_on_left=False, pad_token=0, pad_token_segment_id=0,
+                                 sequence_a_segment_id=0, mask_padding_with_zero=True, ):
     """ Loads a data file into a list of `InputBatch`s
         `cls_token_at_end` define the location of the CLS token:
             - False (Default, BERT/XLM pattern): [CLS] + A + [SEP] + B + [SEP]
@@ -80,10 +91,16 @@ def convert_examples_to_features(examples,label_list,max_seq_length,tokenizer,
     for (ex_index, example) in enumerate(examples):
         if ex_index % 10000 == 0:
             logger.info("Writing example %d of %d", ex_index, len(examples))
-        if isinstance(example.text_a,list):
+        if isinstance(example.text_a, list):
             example.text_a = " ".join(example.text_a)
         tokens = tokenizer.tokenize(example.text_a)
         label_ids = [label_map[x] for x in example.labels]
+        if len(tokens) != len(label_ids):
+            print("len(tokens), len(label_ids)", len(tokens), len(label_ids))
+            print(tokens)
+            print(label_ids)
+
+        assert len(tokens) == len(label_ids)
         # Account for [CLS] and [SEP] with "- 2".
         special_tokens_count = 2
         if len(tokens) > max_seq_length - special_tokens_count:
@@ -126,6 +143,15 @@ def convert_examples_to_features(examples,label_list,max_seq_length,tokenizer,
         # tokens are attended to.
         input_mask = [1 if mask_padding_with_zero else 0] * len(input_ids)
         input_len = len(label_ids)
+        if input_len != len(input_ids):
+            print("len(label_ids)", len(label_ids))
+            print("len(input_ids)", len(input_ids))
+            print("len(tokens", len(tokens))
+            print("(label_ids)", label_ids)
+            print("(input_ids)", input_ids)
+            print("(tokens", tokens)
+
+        assert input_len == len(input_ids)
         # Zero-pad up to the sequence length.
         padding_length = max_seq_length - len(input_ids)
         if pad_on_left:
@@ -142,6 +168,12 @@ def convert_examples_to_features(examples,label_list,max_seq_length,tokenizer,
         assert len(input_ids) == max_seq_length
         assert len(input_mask) == max_seq_length
         assert len(segment_ids) == max_seq_length
+        if len(label_ids) != max_seq_length:
+            print("len(label_ids)", len(label_ids))
+            print("len tokens", len(tokens))
+            print("len input_ids", len(input_ids))
+            print("tokens", tokens)
+            print("label_ids", label_ids)
         assert len(label_ids) == max_seq_length
         if ex_index < 5:
             logger.info("*** Example ***")
@@ -152,7 +184,7 @@ def convert_examples_to_features(examples,label_list,max_seq_length,tokenizer,
             logger.info("segment_ids: %s", " ".join([str(x) for x in segment_ids]))
             logger.info("label_ids: %s", " ".join([str(x) for x in label_ids]))
 
-        features.append(InputFeatures(input_ids=input_ids, input_mask=input_mask,input_len = input_len,
+        features.append(InputFeatures(input_ids=input_ids, input_mask=input_mask, input_len=input_len,
                                       segment_ids=segment_ids, label_ids=label_ids))
     return features
 
@@ -174,9 +206,9 @@ class CnerProcessor(DataProcessor):
 
     def get_labels(self):
         """See base class."""
-        return ["X",'B-CONT','B-EDU','B-LOC','B-NAME','B-ORG','B-PRO','B-RACE','B-TITLE',
-                'I-CONT','I-EDU','I-LOC','I-NAME','I-ORG','I-PRO','I-RACE','I-TITLE',
-                'O','S-NAME','S-ORG','S-RACE',"[START]", "[END]"]
+        return ["X", 'B-CONT', 'B-EDU', 'B-LOC', 'B-NAME', 'B-ORG', 'B-PRO', 'B-RACE', 'B-TITLE',
+                'I-CONT', 'I-EDU', 'I-LOC', 'I-NAME', 'I-ORG', 'I-PRO', 'I-RACE', 'I-TITLE',
+                'O', 'S-NAME', 'S-ORG', 'S-RACE', "[START]", "[END]"]
 
     def _create_examples(self, lines, set_type):
         """Creates examples for the training and dev sets."""
@@ -185,18 +217,19 @@ class CnerProcessor(DataProcessor):
             if i == 0:
                 continue
             guid = "%s-%s" % (set_type, i)
-            text_a= line['words']
+            text_a = line['words']
             # BIOS
             labels = []
             for x in line['labels']:
                 if 'M-' in x:
-                    labels.append(x.replace('M-','I-'))
+                    labels.append(x.replace('M-', 'I-'))
                 elif 'E-' in x:
                     labels.append(x.replace('E-', 'I-'))
                 else:
                     labels.append(x)
             examples.append(InputExample(guid=guid, text_a=text_a, labels=labels))
         return examples
+
 
 class CluenerProcessor(DataProcessor):
     """Processor for the chinese ner data set."""
@@ -216,25 +249,118 @@ class CluenerProcessor(DataProcessor):
     def get_labels(self):
         """See base class."""
         return ["X", "B-address", "B-book", "B-company", 'B-game', 'B-government', 'B-movie', 'B-name',
-                'B-organization', 'B-position','B-scene',"I-address",
+                'B-organization', 'B-position', 'B-scene', "I-address",
                 "I-book", "I-company", 'I-game', 'I-government', 'I-movie', 'I-name',
-                'I-organization', 'I-position','I-scene',
+                'I-organization', 'I-position', 'I-scene',
                 "S-address", "S-book", "S-company", 'S-game', 'S-government', 'S-movie',
                 'S-name', 'S-organization', 'S-position',
-                'S-scene','O',"[START]", "[END]"]
+                'S-scene', 'O', "[START]", "[END]"]
 
     def _create_examples(self, lines, set_type):
         """Creates examples for the training and dev sets."""
         examples = []
         for (i, line) in enumerate(lines):
             guid = "%s-%s" % (set_type, i)
-            text_a= line['words']
+            text_a = line['words']
             # BIOS
             labels = line['labels']
             examples.append(InputExample(guid=guid, text_a=text_a, labels=labels))
         return examples
 
+
+class AigoProcessor(DataProcessor):
+    """Processor for the chinese ner data set."""
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        return self._create_examples(self._read_text(os.path.join(data_dir, "train.txt")), "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        return self._create_examples(self._read_text(os.path.join(data_dir, "dev.txt")), "dev")
+
+    def get_test_examples(self, data_dir):
+        """See base class."""
+        return self._create_examples(self._read_text(os.path.join(data_dir, "test.txt")), "test")
+
+    def get_labels(self):
+        """See base class."""
+
+        return ['X', 'B-科目等級', 'B-_數量_', 'B-一級用途別名稱', 'B-主管機關名稱', 'B-分支計畫名稱', 'B-分支計畫編號', 'B-年度', 'B-機關名稱', 'B-機關編號',
+                'B-用途別名稱',
+                'B-用途別編號', 'B-用途文字說明', 'B-金額', 'B-預算科目名稱', 'B-預算科目編號', 'I-科目等級', 'I-_數量_', 'I-一級用途別名稱', 'I-主管機關名稱',
+                'I-分支計畫名稱',
+                'I-分支計畫編號', 'I-年度', 'I-機關名稱', 'I-機關編號', 'I-用途別名稱', 'I-用途別編號', 'I-用途文字說明', 'I-金額', 'I-預算科目名稱',
+                'I-預算科目編號', 'O', "[START]", "[END]"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for (i, line) in enumerate(lines):
+            if i == 0:
+                continue
+            guid = "%s-%s" % (set_type, i)
+            text_a = line['words']
+            # BIOS
+            labels = []
+            for x in line['labels']:
+                if 'M-' in x:
+                    labels.append(x.replace('M-', 'I-'))
+                elif 'E-' in x:
+                    labels.append(x.replace('E-', 'I-'))
+                else:
+                    labels.append(x)
+
+            examples.append(InputExample(guid=guid, text_a=text_a, labels=labels))
+        return examples
+
+
+class SKLProcessor(DataProcessor):
+    """Processor for the chinese ner data set."""
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        return self._create_examples(self._read_text(os.path.join(data_dir, "train.txt")), "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        return self._create_examples(self._read_text(os.path.join(data_dir, "dev.txt")), "dev")
+
+    def get_test_examples(self, data_dir):
+        """See base class."""
+        return self._create_examples(self._read_text(os.path.join(data_dir, "test.txt")), "test")
+
+    def get_labels(self):
+        """See base class."""
+
+        return ['B-一般住院', 'B-加護病房', 'B-手術日期', 'B-門診', 'I-一般住院', 'I-加護病房', 'I-手術日期',
+                'I-門診', 'O']
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for (i, line) in enumerate(lines):
+            if i == 0:
+                continue
+            guid = "%s-%s" % (set_type, i)
+            text_a = line['words']
+            # BIOS
+            labels = []
+            for x in line['labels']:
+                if 'M-' in x:
+                    labels.append(x.replace('M-', 'I-'))
+                elif 'E-' in x:
+                    labels.append(x.replace('E-', 'I-'))
+                else:
+                    labels.append(x)
+
+            examples.append(InputExample(guid=guid, text_a=text_a, labels=labels))
+        return examples
+
+
 ner_processors = {
     "cner": CnerProcessor,
-    'cluener':CluenerProcessor
+    'aigo': AigoProcessor,
+    'skl': SKLProcessor,
+    'cluener': CluenerProcessor
 }
