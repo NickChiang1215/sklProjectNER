@@ -7,6 +7,7 @@ import os
 import torch
 
 from .utils_ner import DataProcessor
+# from utils_ner import DataProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -243,3 +244,8 @@ class SKLJointProcessor(DataProcessor):
 ner_processors = {
     'skljoint': SKLJointProcessor
 }
+
+if __name__ == "__main__":
+    processor = SKLJointProcessor()
+    data_dir = "../../datasets/sklJoint"
+    examples = processor.get_train_examples(data_dir)

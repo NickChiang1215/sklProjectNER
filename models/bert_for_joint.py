@@ -37,13 +37,13 @@ class BertCrfSoftmaxForJoint(BertPreTrainedModel):
         logits = self.ner_classifier(sequence_output)
         visit_logits = self.visit_classifier(sequence_output[:, 0, :])
         ride_logits = self.ride_classifier(sequence_output[:, 0, :])
-        outputs = (logits,) + outputs[2:]  # add hidden states and attention if they are here
+        outputs = (logits, visit_logits, ride_logits) + outputs[2:]  # add hidden states and attention if they are here
         if labels is not None:
             loss_fct_focal = FocalLoss(weight=self.class_weight.to(input_ids.device), ignore_index=0)
             loss_fct_ce = CrossEntropyLoss(weight=self.class_weight.to(input_ids.device), ignore_index=0)
             loss_visit_ce = BCEWithLogitsLoss(weight=self.visit_pos_weight.to(input_ids.device))
-            loss_ride_focal = FocalLoss(weight=self.ride_class_weight.to(input_ids.device), ignore_index=0)
-            loss_ride_ce = CrossEntropyLoss(weight=self.ride_class_weight.to(input_ids.device), ignore_index=0)
+            loss_ride_focal = FocalLoss(weight=self.ride_class_weight.to(input_ids.device))
+            loss_ride_ce = CrossEntropyLoss(weight=self.ride_class_weight.to(input_ids.device))
             # Only keep active parts of the loss
             if attention_mask is not None:
                 # active_loss = attention_mask.view(-1) == 1
@@ -59,8 +59,8 @@ class BertCrfSoftmaxForJoint(BertPreTrainedModel):
             # TODO: find focal weighted loss
             # loss_visit_focal = loss_visit_focal(visit_logits, visit_labels)
             loss_visit_ce = loss_visit_ce(visit_logits, visit_labels)
-            loss_ride_focal = loss_ride_focal(ride_logits.view(-1, self.ride_num_labels), ride_labels.view(-1))
-            loss_ride_ce = loss_ride_ce(ride_logits.view(-1, self.ride_num_labels), ride_labels.view(-1))
+            loss_ride_focal = loss_ride_focal(ride_logits, ride_labels.view(-1))
+            loss_ride_ce = loss_ride_ce(ride_logits, ride_labels.view(-1))
             loss_crf = self.crf(emissions=logits, tags=labels, mask=attention_mask)
             outputs = (-1 * loss_crf + 0.5 * (loss_focal + loss_ce +
                                               loss_visit_ce +
