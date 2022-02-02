@@ -162,7 +162,7 @@ class Model:
                                                 visit_label_list=self.visit_label_list,
                                                 ride_label_list=self.ride_label_list,
                                                 max_seq_length=self.eval_max_seq_length,
-                                                cls_token_at_end=self.tokenizer.cls_token,
+                                                cls_token_at_end=bool(self.model_type in ["xlnet"]),
                                                 pad_on_left=bool(self.model_type in ['xlnet']),
                                                 cls_token=self.tokenizer.cls_token,
                                                 cls_token_segment_id=2 if self.model_type in ["xlnet"] else 0,

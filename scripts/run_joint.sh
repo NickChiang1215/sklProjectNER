@@ -19,7 +19,7 @@ python $CURRENT_DIR/BERT-NER-Pytorch/run_ner_crf_softmax_joint.py \
   --per_gpu_eval_batch_size=32 \
   --learning_rate=3e-5 \
   --crf_learning_rate=5e-3 \
-  --num_train_epochs=10.0 \
+  --num_train_epochs=15.0 \
   --logging_steps=-1 \
   --save_steps=-1 \
   --output_dir=$OUTPUR_DIR/${TASK_NAME}_output/ \
