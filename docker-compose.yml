@@ -1,0 +1,27 @@
+version: "2.4"
+services:
+    service:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        image: skl_ner_service
+        container_name: skl_ner_service
+        privileged: true
+        restart: always
+        # runtime: nvidia
+        environment:
+          #- NVIDIA_VISIBLE_DEVICES=all
+          - port=5001
+        volumes:
+          - "/Users/nick/sklProject/BERT-NER-Pytorch:/app"
+#          - "/home/nick/BERT-NER-Pytorch:/app"
+        cap_add:
+          - SYS_ADMIN
+        ports:
+          - "5001:5001"
+        networks:
+          - my_net
+
+networks:
+    my_net:
+        driver: bridge

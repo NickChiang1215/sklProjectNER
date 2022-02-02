@@ -33,14 +33,21 @@ class DataProcessor(object):
     def _read_text(self, input_file):
         lines = []
         with open(input_file, 'r') as f:
+            data = {}
             words = []
             labels = []
+
             for line in f:
                 if line.startswith("-DOCSTART-") or line == "" or line == "\n":
                     if words:
-                        lines.append({"words": words, "labels": labels})
+                        data.update({"words": words, "labels": labels})
+                        lines.append(data)
+                        data = {}
                         words = []
                         labels = []
+                elif line.startswith("{"):
+                    dict_ = eval(line.replace("\n", ""))
+                    data.update(dict_)
                 else:
                     splits = line.split(" ")
                     words.append(splits[0])
@@ -50,7 +57,9 @@ class DataProcessor(object):
                         # Examples could have no label for mode = "test"
                         labels.append("O")
             if words:
-                lines.append({"words": words, "labels": labels})
+                data.update({"words": words, "labels": labels})
+                print("data", data)
+                lines.append(data)
         return lines
 
     @classmethod
