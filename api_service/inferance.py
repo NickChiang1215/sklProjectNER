@@ -187,7 +187,6 @@ class Model:
         return dataset
 
     def inference(self, input_cases):
-        print("input_cases", input_cases)
         dataset = self.process_input_data(input_cases)
         predict_sampler = SequentialSampler(dataset)
         predict_dataloader = DataLoader(dataset, sampler=predict_sampler, batch_size=self.batch_size,
@@ -216,7 +215,7 @@ class Model:
                 pred = tag[1:len_ - 1]  # [CLS]XXXX[SEP]
                 label_entities = get_entities(pred, self.id2label, self.markup)
                 json_d = {}
-                json_d['id'] = f'step{step}_batchid{batch_idx}'
+                # json_d['id'] = f'step{step}_batchid{batch_idx}'
                 # json_d['model_tag_seq'] = " ".join([self.id2label[x] for x in pred if self.id2label[x] != 'X'])
                 ner_result = {}
                 original_sentence = input_cases[step * self.batch_size + batch_idx]["doc_comment"]
