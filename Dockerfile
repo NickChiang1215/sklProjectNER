@@ -2,7 +2,7 @@ FROM pytorch/pytorch:1.5-cuda10.1-cudnn7-devel
 
 LABEL Name=skl_ner_service Version=0.0.1
 
-ADD . /app
+ADD requirements.txt /app/
 WORKDIR /app
 
 

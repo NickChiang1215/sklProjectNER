@@ -4,21 +4,20 @@ services:
         build:
             context: .
             dockerfile: Dockerfile
-        image: skl_ner_service
-        container_name: skl_ner_service
+        image: nickchiang/skl_ner_service
+        container_name: sklNerService
         privileged: true
         restart: always
         # runtime: nvidia
         environment:
           #- NVIDIA_VISIBLE_DEVICES=all
-          - port=5001
+          - port=8080
         volumes:
-          - "/Users/nick/sklProject/BERT-NER-Pytorch:/app"
-#          - "/home/nick/BERT-NER-Pytorch:/app"
+          - ".:/app/"
         cap_add:
           - SYS_ADMIN
         ports:
-          - "5001:5001"
+          - "8080:8080"
         networks:
           - my_net
 
